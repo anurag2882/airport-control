@@ -19,7 +19,7 @@ async function loadCsv<T>(path: string): Promise<T[]> {
   const text = await res.text()
   const parsed = Papa.parse<Record<string, unknown>>(text, {
     header: true,
-    dynamicTyping: true,
+    dynamicTyping: false,
     skipEmptyLines: true,
   })
   return parsed.data.map(coerceRow) as T[]
