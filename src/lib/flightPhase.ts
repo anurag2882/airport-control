@@ -1,6 +1,6 @@
 import type { Flight, OpsAlert } from '../types'
 
-export type FlightPhase = 'Scheduled' | 'Boarding' | 'Departed' | 'Delayed'
+export type FlightPhase = 'Scheduled' | 'Boarding' | 'Departed'
 
 function t(v: string): number {
   const n = new Date(v).getTime()
@@ -8,14 +8,14 @@ function t(v: string): number {
 }
 
 /** Live phase of a flight relative to the simulated clock — this is what makes
- * the "real-time" requirement visible on screen instead of only affecting alerts. */
+ * the "real-time" requirement visible on screen. Kept independent of delay
+ * status: delay is a fact about the flight regardless of what time it is,
+ * while phase is purely "where is simNow relative to this flight's timeline." */
 export function getFlightPhase(f: Flight, simNow: number): FlightPhase {
   const boarding = t(f.boarding_time)
-  const sched = t(f.scheduled_departure)
   const actual = t(f.actual_departure)
 
   if (!Number.isNaN(actual) && simNow >= actual) return 'Departed'
-  if (f.delay_minutes > 15 && !Number.isNaN(sched) && simNow >= sched) return 'Delayed'
   if (!Number.isNaN(boarding) && simNow >= boarding) return 'Boarding'
   return 'Scheduled'
 }

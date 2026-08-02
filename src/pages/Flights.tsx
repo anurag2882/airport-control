@@ -9,19 +9,30 @@ import type { Flight } from '../types'
 import clsx from 'clsx'
 
 const PHASE_STYLES: Record<string, string> = {
-  Scheduled: 'border-slate-500/30 bg-slate-500/10 text-slate-300',
+  Scheduled: 'border-slate-500/30 bg-slate-500/10 text-slate-400',
   Boarding: 'border-cyan-500/30 bg-cyan-500/10 text-cyan-300',
-  Departed: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
-  Delayed: 'border-amber-500/30 bg-amber-500/10 text-amber-300',
+  Departed: 'border-violet-500/30 bg-violet-500/10 text-violet-300',
 }
 
-function StatusBadge({ f, simNow }: { f: Flight; simNow: number }) {
-  const phase = getFlightPhase(f, simNow)
+function DelayBadge({ f }: { f: Flight }) {
+  const delayed = f.delay_minutes > 15
   return (
-    <span className={clsx('text-[11px] px-2 py-0.5 rounded-full border', PHASE_STYLES[phase])}>
-      {phase === 'Delayed' ? `Delayed ${f.delay_minutes}m` : phase}
+    <span
+      className={clsx(
+        'text-[11px] px-2 py-0.5 rounded-full border',
+        delayed
+          ? 'border-amber-500/30 bg-amber-500/10 text-amber-300'
+          : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+      )}
+    >
+      {delayed ? `Delayed ${f.delay_minutes}m` : 'On Time'}
     </span>
   )
+}
+
+function PhaseBadge({ f, simNow }: { f: Flight; simNow: number }) {
+  const phase = getFlightPhase(f, simNow)
+  return <span className={clsx('text-[11px] px-2 py-0.5 rounded-full border', PHASE_STYLES[phase])}>{phase}</span>
 }
 
 export default function Flights() {
@@ -49,7 +60,8 @@ export default function Flights() {
     },
     { key: 'aircraft_type', label: 'Aircraft' },
     { key: 'passengers_booked', label: 'Pax', numeric: true },
-    { key: 'delay_minutes', label: 'Live Status', render: (f) => <StatusBadge f={f} simNow={simNow} /> },
+    { key: 'delay_minutes', label: 'Status', render: (f) => <DelayBadge f={f} /> },
+    { key: 'boarding_time', label: 'Live Phase', render: (f) => <PhaseBadge f={f} simNow={simNow} /> },
   ]
 
   return (
