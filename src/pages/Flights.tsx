@@ -30,13 +30,12 @@ export default function Flights() {
 
   if (!data) return null
 
-console.table(
-  rows.slice(0, 20).map((f) => ({
-    flight: f.flight_number,
-    airline: f.airline_name,
-    delay: f.delay_minutes,
-  }))
-)
+  const rows = data.flights.filter((f) => {
+    if (statusFilter === 'delayed') return f.delay_minutes > 15
+    if (statusFilter === 'ontime') return f.delay_minutes <= 15
+    return true
+  })
+
   const columns: Column<Flight>[] = [
     { key: 'flight_number', label: 'Flight' },
     { key: 'airline_name', label: 'Airline' },

@@ -28,3 +28,11 @@ Fully-empty columns (all-null across every row) were dropped rather than guessed
 If you get the real data dictionary with exact column names before submission, swapping the
 `schemas` mapping in the header-injection step (already applied to `public/data/*.csv`) is a
 5-minute fix — just re-run the same rename against the original headerless files.
+
+## Known data quirk: maintenance_logs join key
+
+`maintenance_logs.csv` has an `aircraft_registration` column, but every row shares the same
+value (`VT-ABC`), which never matches any real tail number in `flights.csv`. It also has its
+own `flight_number` column with 330 unique values that all match real flights — that's the
+correct join key, and it's what `FlightDrilldown.tsx` uses. If you regenerate or swap the
+maintenance dataset later, re-check which column actually varies before joining.

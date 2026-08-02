@@ -108,7 +108,6 @@ export function DataTable<T>({
           </thead>
           <tbody>
             {pageRows.map((row) => (
-              console.log("Row Key:", rowKey(row), row)
               <tr
                 key={rowKey(row)}
                 onClick={() => onRowClick?.(row)}

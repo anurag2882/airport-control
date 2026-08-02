@@ -21,8 +21,11 @@ export function FlightDrilldown({ flight }: { flight: Flight }) {
     const gateEvents = data.gateEvents
       .filter((g) => g.flight_number === flight.flight_number)
       .sort((a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime())
+    // Note: maintenance_logs.csv ships a single constant aircraft_registration
+    // value across every row, so it can't be used as a join key. flight_number
+    // is the real, varying key that ties a work order back to a specific flight.
     const maintenance = data.maintenance.filter(
-      (m) => m.aircraft_registration === flight.aircraft_registration
+      (m) => m.flight_number === flight.flight_number
     )
 
     const flaggedBags = bags.filter((b) => b.is_flagged || b.mishandling_count > 0)
@@ -157,7 +160,7 @@ export function FlightDrilldown({ flight }: { flight: Flight }) {
       <section>
         <div className="flex items-center gap-2 text-sm text-slate-300 mb-2">
           <Wrench size={14} className={aogRisk ? 'text-rose-400' : 'text-cyan-400'} />
-          Aircraft Maintenance — {flight.aircraft_registration} ({maintenance.length})
+          Maintenance History for this Flight ({maintenance.length})
         </div>
         <div className="max-h-32 overflow-auto rounded-lg border border-white/10">
           {maintenance.map((m) => (

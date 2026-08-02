@@ -170,4 +170,3 @@ These assumptions are documented to ensure transparency during judging.
 Built for **Frontend Wars 2026 Grand Finale**.
 
 ---
-
