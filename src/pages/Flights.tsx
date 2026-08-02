@@ -30,11 +30,6 @@ export default function Flights() {
 
   if (!data) return null
 
-  const rows = data.flights.filter((f) => {
-    if (statusFilter === 'delayed') return f.delay_minutes > 15
-    if (statusFilter === 'ontime') return f.delay_minutes <= 15
-    return true
-  })
 console.table(
   rows.slice(0, 20).map((f) => ({
     flight: f.flight_number,
