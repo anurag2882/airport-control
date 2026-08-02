@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useAirportStore } from '../store/useAirportStore'
 import { DataTable } from '../components/DataTable'
 import type { Column } from '../components/DataTable'
-import { Modal, DetailRow } from '../components/Modal'
+import { Modal } from '../components/Modal'
+import { FlightDrilldown } from '../components/FlightDrilldown'
 import type { Flight } from '../types'
 import clsx from 'clsx'
 
@@ -83,23 +84,8 @@ export default function Flights() {
       </div>
 
       {selected && (
-        <Modal title={`Flight ${selected.flight_number}`} onClose={() => setSelected(null)}>
-          <DetailRow label="Airline" value={selected.airline_name} />
-          <DetailRow label="Route" value={`${selected.origin_airport} → ${selected.destination_airport}`} />
-          <DetailRow label="Aircraft" value={`${selected.aircraft_type} (${selected.aircraft_registration})`} />
-          <DetailRow label="Terminal / Gate" value={`${selected.terminal} / ${selected.gate}`} />
-          <DetailRow
-            label="Scheduled Departure"
-            value={new Date(selected.scheduled_departure).toLocaleString('en-IN')}
-          />
-          <DetailRow
-            label="Actual Departure"
-            value={new Date(selected.actual_departure).toLocaleString('en-IN')}
-          />
-          <DetailRow label="Delay" value={`${selected.delay_minutes}m — ${selected.delay_reason}`} />
-          <DetailRow label="Passengers Booked" value={`${selected.passengers_booked} / ${selected.seat_capacity}`} />
-          <DetailRow label="Delay Risk Score" value={selected.delay_risk_score?.toFixed(2)} />
-          <DetailRow label="Route Type" value={selected.route_type} />
+        <Modal title={`Flight ${selected.flight_number} — ${selected.airline_name}`} onClose={() => setSelected(null)} size="xl">
+          <FlightDrilldown flight={selected} />
         </Modal>
       )}
     </div>

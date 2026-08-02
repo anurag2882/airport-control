@@ -1,19 +1,27 @@
 import { X } from 'lucide-react'
 import type { ReactNode } from 'react'
 
+const sizeClasses = {
+  md: 'max-w-lg',
+  lg: 'max-w-2xl',
+  xl: 'max-w-4xl',
+}
+
 export function Modal({
   title,
   onClose,
   children,
+  size = 'md',
 }: {
   title: string
   onClose: () => void
   children: ReactNode
+  size?: 'md' | 'lg' | 'xl'
 }) {
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div
-        className="bg-[#0d121e] border border-white/10 rounded-xl w-full max-w-lg max-h-[80vh] overflow-auto"
+        className={`bg-[#0d121e] border border-white/10 rounded-xl w-full ${sizeClasses[size]} max-h-[85vh] overflow-auto`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-3 border-b border-white/10 sticky top-0 bg-[#0d121e]">
