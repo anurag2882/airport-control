@@ -3,7 +3,7 @@ import { useAirportStore } from '../store/useAirportStore'
 import { DetailRow } from './Modal'
 import type { Flight } from '../types'
 import clsx from 'clsx'
-import { Users, Luggage, DoorOpen, Wrench, AlertTriangle } from 'lucide-react'
+import { Users, Luggage, DoorOpen, Wrench, AlertTriangle, UserCog, ShoppingBag } from 'lucide-react'
 
 function fmt(t: string) {
   const d = new Date(t)
@@ -28,18 +28,35 @@ export function FlightDrilldown({ flight }: { flight: Flight }) {
       (m) => m.flight_number === flight.flight_number
     )
 
+    // retail_transactions carries its own flight_number field — a direct, exact join
+    const retail = data.retail.filter((r) => r.flight_number === flight.flight_number)
+
+    // staff_shifts has no flight_number at all, so this is a best-effort join:
+    // crew assigned to this flight's gate on the same calendar date as departure
+    const flightDate = flight.scheduled_departure?.slice(0, 10)
+    const staff = data.staff.filter(
+      (s) => s.gate_assigned === flight.gate && s.shift_date?.slice(0, 10) === flightDate
+    )
+
     const flaggedBags = bags.filter((b) => b.is_flagged || b.mishandling_count > 0)
     const checkedIn = passengers.filter((p) => p.checkin_time).length
     const businessCount = passengers.filter((p) => p.fare_class === 'Business').length
     const openWorkOrders = maintenance.filter((m) => !m.completed_time)
     const aogRisk = maintenance.some((m) => m.is_aog)
+    const retailTotal = retail.reduce((acc, r) => acc + (r.amount_inr ?? 0), 0)
 
-    return { passengers, bags, gateEvents, maintenance, flaggedBags, checkedIn, businessCount, openWorkOrders, aogRisk }
+    return {
+      passengers, bags, gateEvents, maintenance, retail, staff,
+      flaggedBags, checkedIn, businessCount, openWorkOrders, aogRisk, retailTotal,
+    }
   }, [data, flight])
 
   if (!linked) return null
 
-  const { passengers, bags, gateEvents, maintenance, flaggedBags, checkedIn, businessCount, openWorkOrders, aogRisk } = linked
+  const {
+    passengers, bags, gateEvents, maintenance, retail, staff,
+    flaggedBags, checkedIn, businessCount, openWorkOrders, aogRisk, retailTotal,
+  } = linked
 
   return (
     <div className="space-y-5">
@@ -69,7 +86,7 @@ export function FlightDrilldown({ flight }: { flight: Flight }) {
         <DetailRow label="Terminal / Gate" value={`${flight.terminal} / ${flight.gate}`} />
         <DetailRow label="Scheduled Departure" value={fmt(flight.scheduled_departure)} />
         <DetailRow label="Actual Departure" value={fmt(flight.actual_departure)} />
-        <DetailRow label="Delay Risk Score" value={flight.delay_risk_score != null? Number(flight.delay_risk_score).toFixed(2): "—"} />
+        <DetailRow label="Delay Risk Score" value={flight.delay_risk_score?.toFixed(2)} />
       </section>
 
       {/* Passengers */}
@@ -118,7 +135,7 @@ export function FlightDrilldown({ flight }: { flight: Flight }) {
               key={b.bag_tag_number}
               className="flex justify-between text-xs px-3 py-1.5 border-b border-white/5 last:border-0"
             >
-              <span className="text-slate-300">{b.bag_tag_number} · {Number(b.weight_kg)?.toFixed(1)}kg</span>
+              <span className="text-slate-300">{b.bag_tag_number} · {b.weight_kg?.toFixed(1)}kg</span>
               <span className={clsx(b.is_flagged || b.mishandling_count > 0 ? 'text-rose-300' : 'text-slate-500')}>
                 {b.bag_status}
                 {(b.is_flagged || b.mishandling_count > 0) && ' · flagged'}
@@ -180,6 +197,54 @@ export function FlightDrilldown({ flight }: { flight: Flight }) {
           ))}
           {maintenance.length === 0 && (
             <div className="text-xs text-slate-500 px-3 py-2">No maintenance history for this aircraft.</div>
+          )}
+        </div>
+      </section>
+
+      {/* Staff — approximate join, no shared key exists in the source data */}
+      <section>
+        <div className="flex items-center gap-2 text-sm text-slate-300 mb-2">
+          <UserCog size={14} className="text-cyan-400" />
+          Gate Crew ({staff.length})
+        </div>
+        <div className="text-[11px] text-slate-500 mb-2">
+          Approximate match — staff_shifts has no flight_number field, so this matches crew on
+          gate {flight.gate} scheduled the same calendar day.
+        </div>
+        <div className="max-h-32 overflow-auto rounded-lg border border-white/10">
+          {staff.slice(0, 8).map((s) => (
+            <div
+              key={s.staff_id}
+              className="flex justify-between text-xs px-3 py-1.5 border-b border-white/5 last:border-0 text-slate-300"
+            >
+              <span>{s.staff_name} · {s.role}</span>
+              <span className="text-slate-500">{s.shift_start}–{s.shift_end}</span>
+            </div>
+          ))}
+          {staff.length === 0 && (
+            <div className="text-xs text-slate-500 px-3 py-2">No gate crew matched for this date/gate.</div>
+          )}
+        </div>
+      </section>
+
+      {/* Retail — direct join via flight_number on retail_transactions */}
+      <section>
+        <div className="flex items-center gap-2 text-sm text-slate-300 mb-2">
+          <ShoppingBag size={14} className="text-cyan-400" />
+          Retail Activity ({retail.length}){retail.length > 0 && ` · ₹${retailTotal.toLocaleString('en-IN')}`}
+        </div>
+        <div className="max-h-32 overflow-auto rounded-lg border border-white/10">
+          {retail.slice(0, 8).map((r) => (
+            <div
+              key={r.transaction_id}
+              className="flex justify-between text-xs px-3 py-1.5 border-b border-white/5 last:border-0 text-slate-300"
+            >
+              <span>{r.product_category}</span>
+              <span className="text-slate-500">₹{r.amount_inr} · {r.payment_method}</span>
+            </div>
+          ))}
+          {retail.length === 0 && (
+            <div className="text-xs text-slate-500 px-3 py-2">No retail transactions linked to this flight.</div>
           )}
         </div>
       </section>

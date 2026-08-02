@@ -1,17 +1,18 @@
 import { useMemo } from 'react'
 import { useAirportStore } from '../store/useAirportStore'
 import { StatCard } from '../components/StatCard'
+import { GateStrip } from '../components/GateStrip'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell,
 } from 'recharts'
-import { AlertTriangle, Info, Siren } from 'lucide-react'
+import { AlertTriangle, Info, Siren, Check, ShieldAlert } from 'lucide-react'
 import clsx from 'clsx'
 
 const COLORS = ['#22d3ee', '#f472b6', '#fbbf24', '#a78bfa', '#34d399']
 
 export default function Dashboard() {
-  const { data, alerts, feed, simNow } = useAirportStore()
+  const { data, alerts, feed, simNow, topRisks, acknowledgeAlert } = useAirportStore()
 
   const stats = useMemo(() => {
     if (!data) return null
@@ -77,6 +78,8 @@ export default function Dashboard() {
         <StatCard label="Active alerts" value={alerts.length} tone={alerts.length > 5 ? 'critical' : 'default'} />
       </div>
 
+      <GateStrip />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2 rounded-xl border border-white/10 bg-white/[0.02] p-4">
           <div className="text-sm text-slate-300 mb-3">Scheduled departures by hour</div>
@@ -106,6 +109,33 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+        <div className="text-sm text-slate-300 mb-3 flex items-center gap-2">
+          <ShieldAlert size={14} className="text-amber-400" /> Top operational risks right now
+        </div>
+        <div className="text-xs text-slate-500 mb-3">
+          Flights ranked by how many bad signals stack together across delay, baggage, maintenance, and gate data.
+        </div>
+        <div className="space-y-1.5">
+          {topRisks.length === 0 && <div className="text-xs text-slate-500">No elevated-risk flights detected.</div>}
+          {topRisks.map((r) => (
+            <div
+              key={r.flight.flight_number}
+              className="flex items-start justify-between gap-3 text-xs px-3 py-2 rounded-lg bg-white/5"
+            >
+              <div>
+                <span className="text-slate-200 font-medium">{r.flight.flight_number}</span>
+                <span className="text-slate-500"> → {r.flight.destination_airport} · </span>
+                <span className="text-slate-400">{r.reasons.join(', ')}</span>
+              </div>
+              <span className="shrink-0 px-2 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-300">
+                score {r.score}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
           <div className="text-sm text-slate-300 mb-3 flex items-center gap-2">
@@ -124,7 +154,14 @@ export default function Dashboard() {
                 )}
               >
                 <AlertTriangle size={13} className="mt-0.5 shrink-0" />
-                <span>{a.message}</span>
+                <span className="flex-1">{a.message}</span>
+                <button
+                  onClick={() => acknowledgeAlert(a.id)}
+                  title="Acknowledge"
+                  className="shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded border border-white/10 text-slate-400 hover:bg-white/10 hover:text-slate-200"
+                >
+                  <Check size={11} />
+                </button>
               </div>
             ))}
           </div>

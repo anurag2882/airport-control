@@ -4,33 +4,32 @@ import { DataTable } from '../components/DataTable'
 import type { Column } from '../components/DataTable'
 import { Modal } from '../components/Modal'
 import { FlightDrilldown } from '../components/FlightDrilldown'
+import { getFlightPhase } from '../lib/flightPhase'
 import type { Flight } from '../types'
 import clsx from 'clsx'
 
-function StatusBadge({ f }: { f: Flight }) {
-  const delayed = f.delay_minutes > 15
+const PHASE_STYLES: Record<string, string> = {
+  Scheduled: 'border-slate-500/30 bg-slate-500/10 text-slate-300',
+  Boarding: 'border-cyan-500/30 bg-cyan-500/10 text-cyan-300',
+  Departed: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
+  Delayed: 'border-amber-500/30 bg-amber-500/10 text-amber-300',
+}
+
+function StatusBadge({ f, simNow }: { f: Flight; simNow: number }) {
+  const phase = getFlightPhase(f, simNow)
   return (
-    <span
-      className={clsx(
-        'text-[11px] px-2 py-0.5 rounded-full border',
-        delayed
-          ? 'border-amber-500/30 bg-amber-500/10 text-amber-300'
-          : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-      )}
-    >
-      {delayed ? `Delayed ${f.delay_minutes}m` : 'On Time'}
+    <span className={clsx('text-[11px] px-2 py-0.5 rounded-full border', PHASE_STYLES[phase])}>
+      {phase === 'Delayed' ? `Delayed ${f.delay_minutes}m` : phase}
     </span>
   )
 }
 
 export default function Flights() {
-  const { data } = useAirportStore()
+  const { data, simNow } = useAirportStore()
   const [selected, setSelected] = useState<Flight | null>(null)
   const [statusFilter, setStatusFilter] = useState<'all' | 'delayed' | 'ontime'>('all')
 
   if (!data) return null
-  console.log(data.flights[13]);
-  console.log(data.flights[13].flight_number);
 
   const rows = data.flights.filter((f) => {
     if (statusFilter === 'delayed') return f.delay_minutes > 15
@@ -50,7 +49,7 @@ export default function Flights() {
     },
     { key: 'aircraft_type', label: 'Aircraft' },
     { key: 'passengers_booked', label: 'Pax', numeric: true },
-    { key: 'delay_minutes', label: 'Status', render: (f) => <StatusBadge f={f} /> },
+    { key: 'delay_minutes', label: 'Live Status', render: (f) => <StatusBadge f={f} simNow={simNow} /> },
   ]
 
   return (

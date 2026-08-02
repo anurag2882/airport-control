@@ -1,32 +1,43 @@
 import Papa from 'papaparse'
 import type { AirportDataset } from '../types'
 
-// Coerce common string representations into JS types.
-// Papaparse's dynamicTyping handles numbers, but booleans/CSV "True"/"False"
-// come through as strings unless we normalize them ourselves.
+// IMPORTANT: we do NOT use Papaparse's `dynamicTyping` option. It applies a
+// generic float/int regex to every field, and that regex treats strings like
+// "6E-4777" (IndiGo's flight_number format: airline code "6E" + digits) as
+// scientific notation — 6 * 10^-4777 — which rounds to 0. That silently
+// destroyed every IndiGo flight_number (and would do the same to any other
+// value shaped like <digit><E><sign><digits>). Instead we parse everything
+// as strings and coerce only the fields we know, from our own schema, are
+// actually numeric or boolean.
 
-const numericFields = new Set([
-  'delay_minutes',
-  'passengers_booked',
-  'seat_capacity',
-  'delay_risk_score',
-  'weight_kg',
-  'mishandling_count',
-  'severity_level',
-  'queue_length',
-  'amount_inr'
+const NUMERIC_FIELDS = new Set([
+  'seat_capacity', 'passengers_booked', 'delay_minutes', 'distance_km', 'fuel_load_kg',
+  'on_time_performance_score', 'turnaround_time_minutes', 'delay_risk_score',
+  'loyalty_score', 'age', 'boarding_group', 'weight_kg', 'scan_count', 'mishandling_count',
+  'duration_minutes', 'lane_number', 'processing_time_seconds', 'queue_length',
+  'queue_capacity', 'wait_estimate_seconds', 'severity_level', 'duration_hours', 'priority',
+  'shift_duration_hours', 'quantity', 'amount_inr', 'amount_alt',
+])
+
+const BOOLEAN_FIELDS = new Set([
+  'is_international', 'weather_delay_flag', 'is_weekend', 'is_frequent_flyer',
+  'has_connection', 'is_flagged', 'is_delayed', 'flagged', 'secondary_screening',
+  'pat_down', 'is_aog', 'is_recurring', 'is_on_leave', 'is_duty_free',
 ])
 
 function coerceRow<T extends Record<string, unknown>>(row: T): T {
   const out: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(row)) {
-    if (value === 'True') out[key] = true
-    else if (value === 'False') out[key] = false
-    else if (numericFields.has(key)) {
-      const num = Number(value)
-      out[key] = isNaN(num) ? value : num
+  for (const [key, raw] of Object.entries(row)) {
+    if (raw === '' || raw == null) {
+      out[key] = raw
+    } else if (BOOLEAN_FIELDS.has(key)) {
+      out[key] = raw === 'True' || raw === 'true'
+    } else if (NUMERIC_FIELDS.has(key)) {
+      const n = Number(raw)
+      out[key] = Number.isNaN(n) ? raw : n
+    } else {
+      out[key] = raw // IDs, codes, dates, names — always kept as plain strings
     }
-    else out[key] = value
   }
   return out as T
 }
