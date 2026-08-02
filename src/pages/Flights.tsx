@@ -29,6 +29,7 @@ export default function Flights() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'delayed' | 'ontime'>('all')
 
   if (!data) return null
+  console.log("First 10 flights:", data.flights.slice(0, 10));
 
   const rows = data.flights.filter((f) => {
     if (statusFilter === 'delayed') return f.delay_minutes > 15
