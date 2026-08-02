@@ -130,9 +130,8 @@ src/
 ├── components/
 ├── pages/
 ├── store/
-├── hooks/
 ├── types/
-├── utils/
+├── lib/
 └── assets/
 
 public/
