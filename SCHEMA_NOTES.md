@@ -29,6 +29,29 @@ If you get the real data dictionary with exact column names before submission, s
 `schemas` mapping in the header-injection step (already applied to `public/data/*.csv`) is a
 5-minute fix — just re-run the same rename against the original headerless files.
 
+## Known data quirk: staff_shifts.csv has 7 constant columns
+
+`terminal`, `gate_assigned`, `department`, `role`, `shift_duration_hours`, `is_on_leave`, and
+`language` are the same value across every one of the 600 rows (`T3`, `B12`, `Ops`, `Agent`, `8`,
+`False`, `English` respectively). None of these carry real information, so:
+
+- The Staff page no longer shows Department/Role/Gate/On-Leave columns from the raw CSV.
+- The flight drill-down no longer claims to show gate-specific crew — there's no field that
+  actually ties a staff member to a specific gate or flight, so it instead shows same-day
+  airport-wide staffing, broken down by department.
+- The Dashboard's staffing KPI is "staff on duty today" (via `shift_date`, which does vary),
+  not "staff on leave" (which was always reading a constantly-`False` column and always showed 0).
+
+**The real department signal** is hidden in the `staff_id` prefix instead of the `department`
+column: `SEC-` = Security, `CC-` = Customer Care, `RET-` = Retail, `GH-` = Ground Handling,
+`MTC-` = Maintenance, `OPS-` = Operations — fairly evenly split across the 600 staff. This is
+derived in `src/lib/staffDepartment.ts` and attached to every staff record as
+`derived_department` at load time; the original `department` field is kept on the type for
+transparency but isn't used anywhere in the UI.
+
+Columns that do genuinely vary and are safe to use: `staff_id`, `staff_name`, `shift_date`,
+`shift_start`, `shift_end`, `supervisor_id`, `last_shift_date`.
+
 ## Known data quirk: maintenance_logs join key
 
 `maintenance_logs.csv` has an `aircraft_registration` column, but every row shares the same

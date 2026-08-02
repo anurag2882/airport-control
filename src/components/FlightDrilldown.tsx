@@ -31,12 +31,17 @@ export function FlightDrilldown({ flight }: { flight: Flight }) {
     // retail_transactions carries its own flight_number field — a direct, exact join
     const retail = data.retail.filter((r) => r.flight_number === flight.flight_number)
 
-    // staff_shifts has no flight_number at all, so this is a best-effort join:
-    // crew assigned to this flight's gate on the same calendar date as departure
+    // staff_shifts.csv has no flight_number or usable gate field — its
+    // gate_assigned/terminal/department/role columns are constant across all
+    // 600 rows (see SCHEMA_NOTES.md). The only real, varying join dimension
+    // available is shift_date, so this shows airport-wide staffing for that
+    // day rather than pretending to know who was at this specific gate.
     const flightDate = flight.scheduled_departure?.slice(0, 10)
-    const staff = data.staff.filter(
-      (s) => s.gate_assigned === flight.gate && s.shift_date?.slice(0, 10) === flightDate
-    )
+    const staffOnDuty = data.staff.filter((s) => s.shift_date?.slice(0, 10) === flightDate)
+    const staffByDept = staffOnDuty.reduce<Record<string, number>>((acc, s) => {
+      acc[s.derived_department] = (acc[s.derived_department] || 0) + 1
+      return acc
+    }, {})
 
     const flaggedBags = bags.filter((b) => b.is_flagged || b.mishandling_count > 0)
     const checkedIn = passengers.filter((p) => p.checkin_time).length
@@ -46,7 +51,7 @@ export function FlightDrilldown({ flight }: { flight: Flight }) {
     const retailTotal = retail.reduce((acc, r) => acc + (r.amount_inr ?? 0), 0)
 
     return {
-      passengers, bags, gateEvents, maintenance, retail, staff,
+      passengers, bags, gateEvents, maintenance, retail, staffOnDuty, staffByDept,
       flaggedBags, checkedIn, businessCount, openWorkOrders, aogRisk, retailTotal,
     }
   }, [data, flight])
@@ -54,7 +59,7 @@ export function FlightDrilldown({ flight }: { flight: Flight }) {
   if (!linked) return null
 
   const {
-    passengers, bags, gateEvents, maintenance, retail, staff,
+    passengers, bags, gateEvents, maintenance, retail, staffOnDuty, staffByDept,
     flaggedBags, checkedIn, businessCount, openWorkOrders, aogRisk, retailTotal,
   } = linked
 
@@ -201,28 +206,28 @@ export function FlightDrilldown({ flight }: { flight: Flight }) {
         </div>
       </section>
 
-      {/* Staff — approximate join, no shared key exists in the source data */}
+      {/* Staff — no reliable per-gate/per-flight key exists in the source data,
+          so this shows same-day airport staffing by real department instead
+          of a fabricated gate-specific crew list */}
       <section>
         <div className="flex items-center gap-2 text-sm text-slate-300 mb-2">
           <UserCog size={14} className="text-cyan-400" />
-          Gate Crew ({staff.length})
+          Staffing on {flight.scheduled_departure?.slice(0, 10)} ({staffOnDuty.length})
         </div>
         <div className="text-[11px] text-slate-500 mb-2">
-          Approximate match — staff_shifts has no flight_number field, so this matches crew on
-          gate {flight.gate} scheduled the same calendar day.
+          staff_shifts.csv has no gate or flight_number field that actually varies, so this is
+          airport-wide staffing for the day, broken down by department (derived from staff ID
+          prefix) rather than a per-gate crew list.
         </div>
-        <div className="max-h-32 overflow-auto rounded-lg border border-white/10">
-          {staff.slice(0, 8).map((s) => (
-            <div
-              key={s.staff_id}
-              className="flex justify-between text-xs px-3 py-1.5 border-b border-white/5 last:border-0 text-slate-300"
-            >
-              <span>{s.staff_name} · {s.role}</span>
-              <span className="text-slate-500">{s.shift_start}–{s.shift_end}</span>
+        <div className="rounded-lg border border-white/10 divide-y divide-white/5">
+          {Object.entries(staffByDept).map(([dept, count]) => (
+            <div key={dept} className="flex justify-between text-xs px-3 py-1.5 text-slate-300">
+              <span>{dept}</span>
+              <span className="text-slate-500">{count} on shift</span>
             </div>
           ))}
-          {staff.length === 0 && (
-            <div className="text-xs text-slate-500 px-3 py-2">No gate crew matched for this date/gate.</div>
+          {staffOnDuty.length === 0 && (
+            <div className="text-xs text-slate-500 px-3 py-2">No staff records for this date.</div>
           )}
         </div>
       </section>

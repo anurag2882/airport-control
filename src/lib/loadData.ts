@@ -1,5 +1,6 @@
 import Papa from 'papaparse'
-import type { AirportDataset } from '../types'
+import type { AirportDataset, StaffShift } from '../types'
+import { deriveStaffDepartment } from './staffDepartment'
 
 // IMPORTANT: we do NOT use Papaparse's `dynamicTyping` option. It applies a
 // generic float/int regex to every field, and that regex treats strings like
@@ -66,6 +67,11 @@ export async function loadAirportDataset(): Promise<AirportDataset> {
       loadCsv('/data/retail_transactions.csv'),
     ])
 
+  const staffWithDept: StaffShift[] = (staff as StaffShift[]).map((s) => ({
+    ...s,
+    derived_department: deriveStaffDepartment(s.staff_id),
+  }))
+
   return {
     flights,
     passengers,
@@ -73,7 +79,7 @@ export async function loadAirportDataset(): Promise<AirportDataset> {
     gateEvents,
     security,
     maintenance,
-    staff,
+    staff: staffWithDept,
     retail,
   } as AirportDataset
 }

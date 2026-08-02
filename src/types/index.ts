@@ -142,8 +142,9 @@ export interface MaintenanceLog {
 export interface StaffShift {
   staff_id: string
   staff_name: string
-  department: string
-  role: string
+  department: string // constant "Ops" for every row in the source data — not useful, see derived_department
+  role: string // constant "Agent" for every row — not useful
+  derived_department: string // parsed from staff_id prefix (SEC/CC/RET/GH/MTC/OPS) — the real signal
   shift_date: string
   shift_start: string
   shift_end: string

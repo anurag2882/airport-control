@@ -25,7 +25,11 @@ export default function Dashboard() {
       data.security.reduce((acc, s) => acc + s.queue_length, 0) / (data.security.length || 1)
     const flaggedBags = data.baggage.filter((b) => b.is_flagged).length
     const aog = data.maintenance.filter((m) => m.is_aog).length
-    const onLeave = data.staff.filter((s) => s.is_on_leave).length
+    // NOTE: staff_shifts.csv's is_on_leave column is constant `False` across
+    // all 600 rows — it carries no signal, so we don't use it. staff on duty
+    // for the current sim date is a real, clock-driven number instead.
+    const simDateStr = new Date(simNow).toISOString().slice(0, 10)
+    const staffOnDuty = data.staff.filter((s) => s.shift_date?.slice(0, 10) === simDateStr).length
     const revenue = data.retail.reduce((acc, r) => acc + (r.amount_inr ?? 0), 0)
 
     const delayReasons: Record<string, number> = {}
@@ -52,7 +56,7 @@ export default function Dashboard() {
       avgQueue: Math.round(avgQueue),
       flaggedBags,
       aog,
-      onLeave,
+      staffOnDuty,
       revenue,
       delayReasons: Object.entries(delayReasons).map(([name, value]) => ({ name, value })),
       hourly,
@@ -73,7 +77,7 @@ export default function Dashboard() {
         <StatCard label="Avg security queue" value={stats.avgQueue} sub="passengers per lane" />
         <StatCard label="Flagged bags" value={stats.flaggedBags} tone="warning" />
         <StatCard label="Aircraft AOG" value={stats.aog} tone={stats.aog > 0 ? 'critical' : 'good'} />
-        <StatCard label="Staff on leave" value={stats.onLeave} />
+        <StatCard label="Staff on duty today" value={stats.staffOnDuty} sub="matched to sim date" />
         <StatCard label="Duty-free revenue" value={`₹${(stats.revenue / 1000).toFixed(0)}k`} tone="good" />
         <StatCard label="Active alerts" value={alerts.length} tone={alerts.length > 5 ? 'critical' : 'default'} />
       </div>
