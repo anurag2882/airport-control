@@ -12,7 +12,9 @@ const numericFields = new Set([
   'delay_risk_score',
   'weight_kg',
   'mishandling_count',
-  'severity_level'
+  'severity_level',
+  'queue_length',
+  'amount_inr'
 ])
 
 function coerceRow<T extends Record<string, unknown>>(row: T): T {
