@@ -22,7 +22,7 @@ async function loadCsv<T>(path: string): Promise<T[]> {
     dynamicTyping: true,
     skipEmptyLines: true,
   })
-  console.log(parsed.data.slice(10, 20));
+  console.table(parsed.data.slice(10, 20));
   return parsed.data.map(coerceRow) as T[]
 }
 
