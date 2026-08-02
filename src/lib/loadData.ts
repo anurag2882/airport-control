@@ -4,11 +4,26 @@ import type { AirportDataset } from '../types'
 // Coerce common string representations into JS types.
 // Papaparse's dynamicTyping handles numbers, but booleans/CSV "True"/"False"
 // come through as strings unless we normalize them ourselves.
+
+const numericFields = new Set([
+  'delay_minutes',
+  'passengers_booked',
+  'seat_capacity',
+  'delay_risk_score',
+  'weight_kg',
+  'mishandling_count',
+  'severity_level'
+])
+
 function coerceRow<T extends Record<string, unknown>>(row: T): T {
   const out: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(row)) {
     if (value === 'True') out[key] = true
     else if (value === 'False') out[key] = false
+    else if (numericFields.has(key)) {
+      const num = Number(value)
+      out[key] = isNaN(num) ? value : num
+    }
     else out[key] = value
   }
   return out as T
