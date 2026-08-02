@@ -69,7 +69,7 @@ export function FlightDrilldown({ flight }: { flight: Flight }) {
         <DetailRow label="Terminal / Gate" value={`${flight.terminal} / ${flight.gate}`} />
         <DetailRow label="Scheduled Departure" value={fmt(flight.scheduled_departure)} />
         <DetailRow label="Actual Departure" value={fmt(flight.actual_departure)} />
-        <DetailRow label="Delay Risk Score" value={flight.delay_risk_score?.toFixed(2)} />
+        <DetailRow label="Delay Risk Score" value={flight.delay_risk_score != null? Number(flight.delay_risk_score).toFixed(2): "—"} />
       </section>
 
       {/* Passengers */}
@@ -118,7 +118,7 @@ export function FlightDrilldown({ flight }: { flight: Flight }) {
               key={b.bag_tag_number}
               className="flex justify-between text-xs px-3 py-1.5 border-b border-white/5 last:border-0"
             >
-              <span className="text-slate-300">{b.bag_tag_number} · {b.weight_kg?.toFixed(1)}kg</span>
+              <span className="text-slate-300">{b.bag_tag_number} · {Number(b.weight_kg)?.toFixed(1)}kg</span>
               <span className={clsx(b.is_flagged || b.mishandling_count > 0 ? 'text-rose-300' : 'text-slate-500')}>
                 {b.bag_status}
                 {(b.is_flagged || b.mishandling_count > 0) && ' · flagged'}
